@@ -1,91 +1,64 @@
-# Dual-Mode Weeder AMR — Research Overview
+# Dual-Mode Weeder AMR: Project Overview
 
-This repository presents the overview of a Dual-Mode Autonomous Mobile Robot (AMR) designed for precision weed removal in agricultural environments.
+An Autonomous Mobile Robot (AMR) for precision weed removal. A camera detects weeds, and a fast delta manipulator then removes each one **either mechanically, by pulling it with a gripper, or chemically, with a targeted micro-spray**. This means herbicide is used only where pulling isn't suitable.
 
-The system integrates perception, manipulation, and navigation to selectively remove weeds using a hybrid toolhead capable of both mechanical extraction and targeted chemical spraying.
-
-The project is being developed as part of an academic research effort exploring autonomous agricultural robotics and intelligent field manipulation.
+This was my final-year B.Tech project (21ARE495 Project Phase, Automation and Robotics Engineering, Amrita Vishwa Vidyapeetham), guided by Dr. Pramod Sreedharan. This repository is the public overview: system design, figures and presentations. The implementation code is kept in a separate private repository.
 
 ---
 
-## System Motivation
+## Why dual-mode
 
-Conventional weed control methods rely either on mechanical removal, which may damage crops, or chemical spraying, which can cause environmental harm.
+Mechanical weeding alone can damage nearby crops. Blanket spraying wastes herbicide and harms the environment. Combining both on one end-effector lets the robot pick the method per weed, which improves precision and reduces chemical use.
 
-This project investigates a hybrid robotic solution capable of:
+## System pipeline
 
-- Detecting weeds using vision-based perception  
-- Localizing targets in the robot frame  
-- Planning manipulator motion  
-- Executing removal using the most suitable method  
+```mermaid
+flowchart LR
+    cam["RGB camera"] --> yolo["YOLOv8n weed detection<br/>(OpenCV pre-processing)"]
+    yolo -->|"pixel (u, v)"| loc["3D localisation<br/>stereo depth + ROS 2 tf2"]
+    loc -->|"target (x, y, z)"| plan["Delta motion planning<br/>ROS 2 + MoveIt 2"]
+    plan --> head{"Dual-mode head"}
+    head -->|"pull"| grip["Servo 2-finger gripper"]
+    head -->|"spray"| spray["Micro spray nozzle"]
+```
 
-The goal is to improve precision, reduce chemical use, and enable scalable automated field maintenance.
+### Perception
 
----
+- An RGB camera feed is resized and normalised with OpenCV, then passed to a **YOLOv8n** detector. The detector returns bounding boxes, confidence scores and weed class labels.
+- The model was trained on an agricultural dataset at 640 px for 75 epochs with batch size 16.
+- Each detection's pixel centre $(u, v)$ is combined with stereo depth $z$ and transformed into the robot frame with ROS 2 `tf2`. This gives the manipulator's target point.
 
-## System Architecture
+![Weed detections with bounding boxes and confidence scores](images/YOLO.png)
 
-The robot consists of the following major subsystems:
+### Manipulation
 
-### Perception Layer
-- Vision-based weed detection using deep learning models  
-- Conversion of image detections into real-world coordinates  
+- **3-DoF delta robot**, modelled in SolidWorks. Servo motors on a fixed base drive three identical arms. Each arm has a rigid upper link and a parallelogram lower link with ball-socket joints, so the moving platform keeps a constant orientation while it translates quickly and stiffly.
+- **Dual-mode end-effector** with a servo-driven two-finger gripper for pulling weeds and a micro spray nozzle for targeted herbicide.
+- Motion planning uses ROS 2 and MoveIt 2. Model Predictive Control (MPC) was one of the project's planned control objectives.
 
-![YOLO Detection](images/YOLO.png)
+![Delta manipulator](images/Delta.png)
+![Dual-mode end-effector](images/end-effector.png)
 
----
+### Control stack
 
-### Manipulation Layer
-- Lightweight delta robot manipulator  
-- Motion planning using ROS 2 and MoveIt2  
-- Dual-mode toolhead supporting mechanical removal and chemical spraying  
+The prototype splits the work between two processors. A Raspberry Pi 4 runs perception and ROS 2. An ESP32 drives the actuators. The two exchange JSON messages over a serial link.
 
-![Delta Manipulator](images/Delta.png)  
-![End Effector](images/end-effector.png)
-
----
-
-### Control Pipeline
-- ROS 2-based integration of perception, planning, and actuation  
-- Modular control stack enabling real-time response  
-
-![Control Stack](images/ControlStack.png)
+![Control stack](images/ControlStack.png)
 
 ---
 
-## Research Scope
+## Presentations
 
-This project explores:
+| File | Contents |
+|---|---|
+| [`WEED REMOVAL AMR.pdf`](Presentations/WEED%20REMOVAL%20AMR.pdf) | Project Phase I review (20 slides): objectives, CAD, joint configuration, end-effector, vision pipeline, YOLOv8 training, 2D-to-3D localisation, delta kinematics |
+| [`Research Methodology - Dual-Mode Weeder AMR.pptx`](Presentations/Research%20Methodology%20-%20Dual-Mode%20Weeder%20AMR.pptx) | Literature and methodology overview (7 slides): weed detection, SLAM-based navigation, manipulation approaches |
 
-- Autonomous precision agriculture robotics  
-- Mobile manipulation in semi-structured environments  
-- Vision-driven target localization  
-- Hybrid actuation strategies for selective intervention  
+## Research scope
 
-The system serves as a platform for studying intelligent agricultural automation and human-scale robotic field assistance.
+Precision-agriculture robotics, mobile manipulation in semi-structured fields, vision-driven target localisation, and hybrid (mechanical and chemical) actuation for selective intervention.
 
----
+## Team
 
-## Research Status
-
-This repository provides a high-level overview of the system design and research direction.
-
-The full implementation, experimental modules, and development code are maintained in a separate private repository while the project progresses toward publication.
-
-Selected results, demonstrations, and datasets may be released publicly at later stages of the research.
-
----
-
-## Authors
-
-Adithya Pothula  
-Siddanth Bhogoju  
-Revu Danusith Kumar  
-
----
-
-## Research Area
-
-Precision Agriculture Robotics  
-Autonomous Mobile Manipulation  
-Field Robotics and Smart Farming
+Adithya Pothula · Siddanth Bhogoju · Revu Danusith Kumar
+Guide: Dr. Pramod Sreedharan, Amrita Vishwa Vidyapeetham
