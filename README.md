@@ -39,6 +39,12 @@ flowchart LR
 ![Delta manipulator](images/Delta.png)
 ![Dual-mode end-effector](images/end-effector.png)
 
+**Kinematics and reach.** The upper (active) arm is $L$ = 176.49 mm and the forearm (passive parallelogram) is $l$ = 193.97 mm. Inverse kinematics finds each motor angle with a tangent half-angle substitution. Forward kinematics intersects three spheres centred on the elbows (shifted inward by the platform radius). With these lengths, the maximum vertical reach is $L + l \approx$ 370 mm, and the working radius is about 135 mm at the nominal operating depth of roughly 240 mm.
+
+| Dimensioned side view | Computed workspace |
+|---|---|
+| ![Delta dimensions](images/delta-dimensions.png) | ![Delta workspace for L = 176.49 mm, l = 193.97 mm](images/delta-workspace.png) |
+
 ### Control stack
 
 The prototype splits the work between two processors. A Raspberry Pi 4 runs perception and ROS 2. An ESP32 drives the actuators. The two exchange JSON messages over a serial link.
